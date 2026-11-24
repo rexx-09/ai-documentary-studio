@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#07111f">
+  <title>AI Documentary Studio</title>
+  <style>
+    :root{color-scheme:dark;--bg:#07111f;--panel:#101e30;--line:#26384d;--muted:#a8b8ca;--text:#f4f7fb;--accent:#63d6b0}
+    *{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,#07111f,#0b1b2b);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+    main{max-width:900px;margin:auto;padding:24px 16px 56px}.top{padding:24px 0 12px}.eyebrow{color:var(--accent);font-size:.78rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+    h1{font-size:clamp(2rem,7vw,3.2rem);line-height:1.08;margin:8px 0}p{color:var(--muted)}.panel{background:rgba(16,30,48,.94);border:1px solid var(--line);border-radius:18px;padding:18px;margin:16px 0}
+    label{display:block;font-weight:650;margin:12px 0 6px}input,select,textarea{width:100%;padding:13px;border-radius:10px;border:1px solid var(--line);background:#091625;color:var(--text);font:inherit}
+    textarea{min-height:90px;resize:vertical}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+    button{border:0;border-radius:11px;padding:13px 17px;background:var(--accent);color:#062017;font-weight:800;font-size:1rem;margin-top:16px;width:100%;cursor:pointer}
+    button.secondary{background:#1a3047;color:var(--text);border:1px solid var(--line)}.small{font-size:.88rem}.status{padding:10px 12px;border-radius:10px;background:#102b2b;color:#b9f5df;margin-top:12px}
+    .chapter{border:1px solid var(--line);border-radius:12px;padding:14px;margin:12px 0;background:#0b1929}.chapter h3{margin:0 0 4px}.chapter p{margin:5px 0}
+    pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#081522;border:1px solid var(--line);border-radius:10px;padding:13px;color:#e7eef8}
+    .hidden{display:none}.tag{display:inline-block;color:var(--accent);font-size:.78rem;font-weight:700}.foot{font-size:.82rem;border-top:1px solid var(--line);padding-top:16px;margin-top:26px}
+  </style>
+</head>
+<body>
+<main>
+  <header class="top">
+    <div class="eyebrow">Your production workspace</div>
+    <h1>AI Documentary Studio</h1>
+    <p>Plan a documentary, structure its chapters, and prepare prompts for your AI production workflow.</p>
+  </header>
+
+  <section class="panel">
+    <h2>New documentary</h2>
+    <label for="topic">Documentary topic</label>
+    <input id="topic" value="The Mystery of the Deep Ocean" placeholder="e.g. The lost cities of the ancient world">
+    <div class="grid">
+      <div><label for="duration">Target duration</label>
+        <select id="duration"><option>5 minutes</option><option>10 minutes</option><option selected>40 minutes</option></select></div>
+      <div><label for="language">Narration language</label>
+        <select id="language"><option selected>English</option><option>Hindi</option><option>Hinglish</option></select></div>
+      <div><label for="style">Documentary style</label>
+        <select id="style"><option selected>Professional documentary</option><option>Wildlife documentary</option><option>Historical documentary</option><option>Science documentary</option></select></div>
+    </div>
+    <label for="notes">Special instructions (optional)</label>
+    <textarea id="notes" placeholder="Audience, tone, regions to cover, or anything to avoid..."></textarea>
+    <button id="build">Build production brief</button>
+    <div id="status" class="status hidden" role="status"></div>
+  </section>
+
+  <section id="output" class="panel hidden">
+    <div class="tag">DRAFT PRODUCTION PLAN</div>
+    <h2 id="outTitle"></h2>
+    <p id="outMeta"></p>
+    <div id="chapters"></div>
+    <h3>Research checklist</h3>
+    <ul>
+      <li>Use reliable primary or institutional sources where possible.</li>
+      <li>Verify dates, measurements, names, and scientific claims.</li>
+      <li>Keep a source list for every factual chapter.</li>
+      <li>Label generated visuals as illustrative when they could be mistaken for real footage.</li>
+    </ul>
+    <h3>Prompt for your AI writing assistant</h3>
+    <p class="small">This creates a handoff prompt. It does not call an AI API or generate a finished video yet.</p>
+    <pre id="handoff"></pre>
+    <button class="secondary" id="copy">Copy AI handoff prompt</button>
+    <button class="secondary" id="download">Download production brief (.txt)</button>
+  </section>
+
+  <p class="foot">Starter version 0.1 · This is a planning prototype. AI research, video generation, voiceover, cloud jobs, and MP4 rendering will be connected in later stages. Do not add secret API keys to this website or commit them to GitHub.</p>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+let latestBrief = "";
+function buildPlan(){
+  const topic = $("topic").value.trim();
+  if(!topic){$("status").textContent="Please enter a documentary topic first.";$("status").classList.remove("hidden");return;}
+  const duration = $("duration").value, language = $("language").value, style = $("style").value, notes = $("notes").value.trim();
+  const mins = parseInt(duration,10);
+  const count = mins === 40 ? 10 : mins === 10 ? 5 : 3;
+  const titles = ["The opening mystery","Background and context","Entering the subject","The key discovery","How it works","Evidence and expert perspectives","The wider impact","What remains unknown","Challenges and unanswered questions","Conclusion and what comes next"];
+  const descriptions = [
+    "Open with a compelling question and establish why the topic matters.",
+    "Explain the essential history, geography, and context.",
+    "Take the viewer deeper into the subject with clear visual storytelling.",
+    "Present a major discovery, event, or turning point with sourced facts.",
+    "Explain the science, mechanisms, or historical details in accessible language.",
+    "Compare evidence and explain what credible experts and sources say.",
+    "Show why the topic matters beyond the immediate story.",
+    "Separate confirmed knowledge from uncertainty and open questions.",
+    "Explore limitations, debates, risks, and what researchers still need to learn.",
+    "Bring the story together with a memorable, accurate closing."
+  ];
+  const chapters = $("chapters"); chapters.innerHTML = "";
+  for(let i=0;i<count;i++){
+    const start=Math.round(i*mins/count), end=Math.round((i+1)*mins/count);
+    const div=document.createElement("article"); div.className="chapter";
+    const h=document.createElement("h3"); h.textContent=String(i+1).padStart(2,"0")+" · "+titles[i];
+    const time=document.createElement("p"); time.className="small"; time.textContent=`${String(start).padStart(2,"0")}:00 – ${String(end).padStart(2,"0")}:00`;
+    const d=document.createElement("p"); d.textContent=descriptions[i];
+    div.append(h,time,d); chapters.append(div);
+  }
+  const handoff = `Create a ${duration} ${style.toLowerCase()} about: ${topic}.\nNarration language: ${language}.\nSpecial instructions: ${notes || "None"}.\n\nFirst, research the topic using reliable sources and provide citations. Separate verified facts from uncertainty. Then create a chapter-by-chapter outline with narration, visual descriptions, and short text-to-video prompts. Do not invent facts, quotes, footage, or sources. Mark AI-generated reconstructions as illustrative. Prepare a production plan for human review; do not claim that video clips or a finished MP4 have been generated.`;
+  latestBrief = `AI DOCUMENTARY STUDIO — PRODUCTION BRIEF\nTopic: ${topic}\nDuration: ${duration}\nLanguage: ${language}\nStyle: ${style}\nSpecial instructions: ${notes || "None"}\n\n${handoff}`;
+  $("outTitle").textContent=topic;
+  $("outMeta").textContent=`${duration} · ${language} narration · ${style}`;
+  $("handoff").textContent=handoff;
+  $("output").classList.remove("hidden");
+  $("status").textContent="Production plan created. Review the chapters and copy the handoff prompt when ready.";
+  $("status").classList.remove("hidden");
+  $("output").scrollIntoView({behavior:"smooth",block:"start"});
+}
+$("build").addEventListener("click",buildPlan);
+$("copy").addEventListener("click",async()=>{try{await navigator.clipboard.writeText($("handoff").textContent);$("status").textContent="AI handoff prompt copied.";}catch(e){$("status").textContent="Copy was blocked by your browser. Select the prompt text and copy it manually.";}});
+$("download").addEventListener("click",()=>{const blob=new Blob([latestBrief],{type:"text/plain"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="documentary-production-brief.txt";a.click();URL.revokeObjectURL(url);});
+</script>
+</body>
+</html>
